@@ -2,12 +2,35 @@
 ### SOLID 
 ### 1.1 - POST - Login de Usuário via API
     ```
-    curl -X 'POST' \
-    'https://localhost:44375/api/v1/login' \
-    -H 'accept: application/json' \
-    -H 'Content-Type: application/json' \
-    -d '{
-    "email": "user@example.com",
-    "password": "string"
-    }'
+// Errado: Uma classe com múltiplas responsabilidades
+public class UserService
+{
+    public void RegisterUser(string username, string password)
+    {
+        // Lógica de registro de usuário
+    }
+
+    public void SendWelcomeEmail(string email)
+    {
+        // Lógica para enviar email
+    }
+}
+
+// Certo: Separação de responsabilidades
+public class UserService
+{
+    public void RegisterUser(string username, string password)
+    {
+        // Lógica de registro de usuário
+    }
+}
+
+public class EmailService
+{
+    public void SendWelcomeEmail(string email)
+    {
+        // Lógica para enviar email
+    }
+}
+
     ```
