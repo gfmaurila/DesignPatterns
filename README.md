@@ -1,6 +1,7 @@
 # DesignPatterns
 ### SOLID 
-### 1.1 - POST - Login de Usuário via API
+### S - Single Responsibility Principle (Princípio da Responsabilidade Única)
+<p>Definição: Uma classe deve ter apenas uma razão para mudar, ou seja, deve ter apenas uma responsabilidade.</p>
     ```
          //Errado: Uma classe com múltiplas responsabilidades
         public class UserService
