@@ -1,7 +1,9 @@
 # Design Patterns
 ### SOLID 
 ### S - Single Responsibility Principle (Princípio da Responsabilidade Única)
-## Definição: Uma classe deve ter apenas uma razão para mudar, ou seja, deve ter apenas uma responsabilidade.
+Definição: Uma classe deve ter apenas uma razão para mudar, ou seja, deve ter apenas uma responsabilidade.
+
+
     ```
          //Errado: Uma classe com múltiplas responsabilidades
         public class UserService
@@ -35,3 +37,6 @@
         }
 
     ```
+
+
+Explicação: No exemplo correto, cada classe tem uma responsabilidade única: uma para registrar o usuário e outra para enviar o email.
