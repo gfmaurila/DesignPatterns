@@ -1441,6 +1441,7 @@ Ele tem um Id único.
 
 ### Diferença entre Entidades e Value Objects
 
+<div>
     <table>
         <tr>
             <th>Aspecto</th>
@@ -1476,6 +1477,7 @@ Ele tem um Id único.
 
 
     </table>
+</div>
 
 
 ### Quando usar Entidades?
