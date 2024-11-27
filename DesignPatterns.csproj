@@ -9,6 +9,11 @@
 
   <ItemGroup>
     <Folder Include="OOP\" />
+    <Folder Include="SOLID\1-S\" />
+    <Folder Include="SOLID\2-O\" />
+    <Folder Include="SOLID\3-L\" />
+    <Folder Include="SOLID\4-I\" />
+    <Folder Include="SOLID\5-D\" />
   </ItemGroup>
 
 </Project>

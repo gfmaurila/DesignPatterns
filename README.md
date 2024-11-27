@@ -1700,10 +1700,7 @@ A classe coordena diferentes serviços (como o API Factory, command store e logg
         }
     }
 
-    ```
-
-
-    ```
+    
     namespace GenericNamespace.Facade;s
 
     public interface IEntityDataFacade
@@ -1723,5 +1720,1381 @@ Manutenção facilitada: Alterações nos subsistemas podem ser feitas sem impac
 ### Resumo
 O Facade Pattern ajuda a organizar e simplificar sistemas complexos, centralizando a interação com os subsistemas em uma única classe. É ideal para reduzir a complexidade e facilitar o uso de APIs ou sistemas internos. 🚀
 
+
+
+---
+
+
+
+
+### Chain of Responsibility Pattern - Padrão Cadeia de Responsabilidade
+Definição:
+O Chain of Responsibility é um padrão comportamental que permite que um pedido seja processado por uma sequência de handlers (manipuladores). Cada handler decide se processa o pedido ou o encaminha para o próximo na cadeia.
+
+
+
+### Quando usar?
+Quando você tem um conjunto de objetos que podem processar um pedido, mas não sabe qual deles o fará até o momento da execução.
+Quando deseja desacoplar o remetente do pedido de seus receptores.
+Para implementar pipelines de processamento flexíveis.
+
+
+
+### Exemplo Prático
+Cenário
+Vamos criar um sistema de autenticação onde diferentes etapas verificam:
+
+1 - Se o usuário existe.
+2 - Se a senha está correta.
+3 - Se o usuário tem permissão para acessar o recurso.
+Cada etapa será um handler na cadeia de responsabilidade.
+
+
+
+### Implementação
+### 1. Criar a Interface Base do Handler
+Define a estrutura comum para todos os manipuladores.
+
+
+
+
+
+    ```
+    public interface IHandler
+    {
+        void SetNext(IHandler next);
+        void Handle(Request request);
+    }
+    ```
+
+### 2. Criar a Classe Base para os Handlers
+Facilita a implementação da lógica para passar o pedido adiante.
+
+    ```
+    public abstract class BaseHandler : IHandler
+    {
+        private IHandler _nextHandler;
+
+        public void SetNext(IHandler next)
+        {
+            _nextHandler = next;
+        }
+
+        public virtual void Handle(Request request)
+        {
+            if (_nextHandler != null)
+            {
+                _nextHandler.Handle(request);
+            }
+        }
+    }
+    ```
+
+
+### 3. Criar os Handlers Concretos
+Cada classe executa uma verificação específica e, se necessário, passa o pedido para o próximo handler.
+
+
+    ```
+    public class UserExistsHandler : BaseHandler
+    {
+        public override void Handle(Request request)
+        {
+            if (request.Username != "admin")
+            {
+                Console.WriteLine("User does not exist.");
+                return;
+            }
+
+            Console.WriteLine("User exists.");
+            base.Handle(request);
+        }
+    }
+
+    public class PasswordHandler : BaseHandler
+    {
+        public override void Handle(Request request)
+        {
+            if (request.Password != "1234")
+            {
+                Console.WriteLine("Incorrect password.");
+                return;
+            }
+
+            Console.WriteLine("Password is correct.");
+            base.Handle(request);
+        }
+    }
+
+    public class PermissionHandler : BaseHandler
+    {
+        public override void Handle(Request request)
+        {
+            if (!request.HasPermission)
+            {
+                Console.WriteLine("Permission denied.");
+                return;
+            }
+
+            Console.WriteLine("Permission granted.");
+            base.Handle(request);
+        }
+    }
+
+    ```
+
+
+
+
+### 4. Criar o Objeto de Pedido
+O pedido que será processado pela cadeia.
+
+
+    ```
+    public class Request
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public bool HasPermission { get; set; }
+    }
+
+    ```
+
+### 5. Configurar e Usar a Cadeia de Responsabilidade
+
+    
+    ```
+    class Program
+    {
+        static void Main()
+        {
+            // Criar os handlers
+            var userExistsHandler = new UserExistsHandler();
+            var passwordHandler = new PasswordHandler();
+            var permissionHandler = new PermissionHandler();
+
+            // Configurar a cadeia
+            userExistsHandler.SetNext(passwordHandler);
+            passwordHandler.SetNext(permissionHandler);
+
+            // Criar o pedido
+            var request = new Request
+            {
+                Username = "admin",
+                Password = "1234",
+                HasPermission = true
+            };
+
+            // Processar o pedido
+            userExistsHandler.Handle(request);
+
+            // Saída esperada:
+            // User exists.
+            // Password is correct.
+            // Permission granted.
+        }
+    }
+    ```
+
+
+
+### Vantagens do Chain of Responsibility
+Desacoplamento: O remetente do pedido não precisa saber qual handler processará o pedido.
+Flexibilidade: Fácil adicionar, remover ou reorganizar handlers na cadeia.
+Responsabilidade distribuída: Cada handler é responsável por uma etapa específica.
+
+
+### Quando evitar?
+Se o pedido precisa ser processado por todos os handlers (use um padrão diferente, como Composite).
+Se a lógica for simples e um único método puder lidar com o pedido.
+
+
+### Resumo
+O Chain of Responsibility é uma ótima escolha quando você precisa que um pedido passe por várias etapas sequenciais de processamento, permitindo que cada etapa decida se deve manipular o pedido ou encaminhá-lo. 🚀
+
+
+
+### Decorator Pattern - Padrão Decorador
+Definição:
+O Decorator Pattern é um padrão estrutural que permite adicionar comportamentos a objetos dinamicamente, sem alterar o código da classe original. Ele utiliza uma composição em vez de herança para estender funcionalidades.
+
+
+### Quando usar?
+Quando deseja adicionar funcionalidades a objetos individuais de maneira dinâmica.
+Quando não é viável modificar diretamente a classe base.
+Quando precisar combinar diferentes comportamentos em tempo de execução.
+
+
+
+### Exemplo Prático
+Cenário
+Vamos criar um sistema de bebidas em um café. Cada bebida pode ter "complementos" como leite, açúcar ou calda. Usaremos o padrão Decorator para adicionar esses complementos sem modificar a classe base das bebidas.
+
+
+### Implementação
+### 1. Criar a Interface Base
+Define a estrutura comum para todas as bebidas.
+
+    ```
+    public interface IBeverage
+    {
+        string GetDescription();
+        decimal GetCost();
+    }
+    ```
+
+#### 2. Criar a Classe Base Concreta
+Implementa a interface básica.
+
+
+    ```
+    public class Coffee : IBeverage
+    {
+        public string GetDescription()
+        {
+            return "Coffee";
+        }
+
+        public decimal GetCost()
+        {
+            return 5.00m; // Preço base do café
+        }
+    }
+    ```
+
+
+
+#### 3. Criar a Classe Base para os Decoradores
+Todos os decoradores implementam a mesma interface e decoram uma bebida existente.
+
+
+    ```
+    public abstract class BeverageDecorator : IBeverage
+    {
+        protected IBeverage _beverage;
+
+        protected BeverageDecorator(IBeverage beverage)
+        {
+            _beverage = beverage;
+        }
+
+        public virtual string GetDescription()
+        {
+            return _beverage.GetDescription();
+        }
+
+        public virtual decimal GetCost()
+        {
+            return _beverage.GetCost();
+        }
+    }
+    ```
+
+
+
+#### 4. Criar Decoradores Concretos
+Cada decorador adiciona comportamento específico.
+
+    ```
+    public class MilkDecorator : BeverageDecorator
+    {
+        public MilkDecorator(IBeverage beverage) : base(beverage) { }
+
+        public override string GetDescription()
+        {
+            return _beverage.GetDescription() + ", Milk";
+        }
+
+        public override decimal GetCost()
+        {
+            return _beverage.GetCost() + 1.50m; // Custo adicional do leite
+        }
+    }
+
+    public class SugarDecorator : BeverageDecorator
+    {
+        public SugarDecorator(IBeverage beverage) : base(beverage) { }
+
+        public override string GetDescription()
+        {
+            return _beverage.GetDescription() + ", Sugar";
+        }
+
+        public override decimal GetCost()
+        {
+            return _beverage.GetCost() + 0.50m; // Custo adicional do açúcar
+        }
+    }
+
+    public class SyrupDecorator : BeverageDecorator
+    {
+        public SyrupDecorator(IBeverage beverage) : base(beverage) { }
+
+        public override string GetDescription()
+        {
+            return _beverage.GetDescription() + ", Syrup";
+        }
+
+        public override decimal GetCost()
+        {
+            return _beverage.GetCost() + 2.00m; // Custo adicional da calda
+        }
+    }
+    ```
+
+
+### 5. Usar o Decorator
+
+    ```
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Criar um café simples
+            IBeverage beverage = new Coffee();
+            Console.WriteLine($"{beverage.GetDescription()} - {beverage.GetCost():C}");
+
+            // Adicionar leite ao café
+            beverage = new MilkDecorator(beverage);
+            Console.WriteLine($"{beverage.GetDescription()} - {beverage.GetCost():C}");
+
+            // Adicionar açúcar ao café com leite
+            beverage = new SugarDecorator(beverage);
+            Console.WriteLine($"{beverage.GetDescription()} - {beverage.GetCost():C}");
+
+            // Adicionar calda ao café com leite e açúcar
+            beverage = new SyrupDecorator(beverage);
+            Console.WriteLine($"{beverage.GetDescription()} - {beverage.GetCost():C}");
+        }
+    }
+    ```
+
+### Saída Esperada
+
+    ```
+    Coffee - $5.00
+    Coffee, Milk - $6.50
+    Coffee, Milk, Sugar - $7.00
+    Coffee, Milk, Sugar, Syrup - $9.00
+    ```    
+
+### Vantagens do Decorator Pattern
+Flexibilidade: Permite combinar e empilhar comportamentos de forma dinâmica.
+Abstração: O cliente não precisa saber como os objetos são decorados.
+Reuso: Comportamentos podem ser reutilizados em diferentes combinações.
+
+
+### Quando evitar?
+Se o número de combinações de decoradores for muito alto, pode se tornar complexo e difícil de gerenciar.
+Se a hierarquia de classes for mais simples com herança direta.
+
+### Resumo
+O Decorator Pattern permite adicionar funcionalidades a objetos sem alterar seu código ou criar subclasses. Ele é útil para cenários em que os requisitos mudam frequentemente ou há muitas combinações possíveis de comportamentos. 🚀
+
+
+---
+
+#### Specification Pattern
+
+Definição:
+O Specification Pattern é um padrão comportamental que encapsula a lógica de validação ou regras de negócios em objetos reutilizáveis e combináveis. Ele permite criar condições complexas de maneira modular e fácil de reutilizar.
+
+
+### Quando usar?
+Quando você tem regras de negócios ou critérios de validação que podem ser reutilizados em várias partes do sistema.
+Para construir condições complexas combinando especificações simples.
+Para melhorar a legibilidade e organização do código que lida com validações ou filtros.
+
+
+
+### Exemplo Prático
+Cenário
+Imagine um sistema que lida com a filtragem de produtos em uma loja. Os produtos precisam ser filtrados com base em diferentes critérios, como preço, categoria ou disponibilidade. Usaremos o Specification Pattern para encapsular essas condições.
+
+
+
+### Implementação
+### 1. Criar a Interface Base
+Define o contrato para todas as especificações.
+
+
+    ```
+    public interface ISpecification<T>
+    {
+        bool IsSatisfiedBy(T entity);
+        ISpecification<T> And(ISpecification<T> other);
+        ISpecification<T> Or(ISpecification<T> other);
+        ISpecification<T> Not();
+    }
+    ```
+
+
+### 2. Implementar a Classe Base
+Fornece a implementação básica para combinar especificações.
+
+    ```
+    public abstract class Specification<T> : ISpecification<T>
+    {
+        public abstract bool IsSatisfiedBy(T entity);
+
+        public ISpecification<T> And(ISpecification<T> other)
+        {
+            return new AndSpecification<T>(this, other);
+        }
+
+        public ISpecification<T> Or(ISpecification<T> other)
+        {
+            return new OrSpecification<T>(this, other);
+        }
+
+        public ISpecification<T> Not()
+        {
+            return new NotSpecification<T>(this);
+        }
+    }
+    ```
+
+
+#### 3. Criar Especificações Compostas
+Combina especificações usando lógica booleana.
+
+
+    ```
+    public class AndSpecification<T> : Specification<T>
+    {
+        private readonly ISpecification<T> _left;
+        private readonly ISpecification<T> _right;
+
+        public AndSpecification(ISpecification<T> left, ISpecification<T> right)
+        {
+            _left = left;
+            _right = right;
+        }
+
+        public override bool IsSatisfiedBy(T entity)
+        {
+            return _left.IsSatisfiedBy(entity) && _right.IsSatisfiedBy(entity);
+        }
+    }
+
+    public class OrSpecification<T> : Specification<T>
+    {
+        private readonly ISpecification<T> _left;
+        private readonly ISpecification<T> _right;
+
+        public OrSpecification(ISpecification<T> left, ISpecification<T> right)
+        {
+            _left = left;
+            _right = right;
+        }
+
+        public override bool IsSatisfiedBy(T entity)
+        {
+            return _left.IsSatisfiedBy(entity) || _right.IsSatisfiedBy(entity);
+        }
+    }
+
+    public class NotSpecification<T> : Specification<T>
+    {
+        private readonly ISpecification<T> _specification;
+
+        public NotSpecification(ISpecification<T> specification)
+        {
+            _specification = specification;
+        }
+
+        public override bool IsSatisfiedBy(T entity)
+        {
+            return !_specification.IsSatisfiedBy(entity);
+        }
+    }
+    ```
+
+
+### 4. Criar Especificações Concretas
+Encapsula regras específicas de validação.
+
+
+    ```
+    public class PriceSpecification : Specification<Product>
+    {
+        private readonly decimal _minPrice;
+
+        public PriceSpecification(decimal minPrice)
+        {
+            _minPrice = minPrice;
+        }
+
+        public override bool IsSatisfiedBy(Product product)
+        {
+            return product.Price >= _minPrice;
+        }
+    }
+
+    public class CategorySpecification : Specification<Product>
+    {
+        private readonly string _category;
+
+        public CategorySpecification(string category)
+        {
+            _category = category;
+        }
+
+        public override bool IsSatisfiedBy(Product product)
+        {
+            return product.Category == _category;
+        }
+    }
+    ```
+
+### 5. Criar a Entidade
+Define o objeto a ser filtrado ou validado.
+
+
+    ```
+    public class Product
+    {
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public string Category { get; set; }
+    }
+    ```
+
+### 6. Usar as Especificações
+
+    ```
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Criar lista de produtos
+            var products = new List<Product>
+            {
+                new Product { Name = "Laptop", Price = 1500, Category = "Electronics" },
+                new Product { Name = "Mouse", Price = 50, Category = "Electronics" },
+                new Product { Name = "Shampoo", Price = 10, Category = "Beauty" },
+                new Product { Name = "Keyboard", Price = 100, Category = "Electronics" }
+            };
+
+            // Criar especificações
+            var priceSpec = new PriceSpecification(100);
+            var categorySpec = new CategorySpecification("Electronics");
+
+            // Combinar especificações
+            var spec = priceSpec.And(categorySpec);
+
+            // Filtrar produtos
+            var filteredProducts = products.Where(p => spec.IsSatisfiedBy(p)).ToList();
+
+            // Exibir produtos filtrados
+            foreach (var product in filteredProducts)
+            {
+                Console.WriteLine($"{product.Name} - {product.Price:C} - {product.Category}");
+            }
+        }
+    }
+    ```
+
+
+### Saída Esperada
+
+    ```
+    Laptop - $1,500.00 - Electronics
+    Keyboard - $100.00 - Electronics    
+    ```
+
+
+### Vantagens do Specification Pattern
+Reuso: Especificações podem ser reutilizadas em diferentes partes do sistema.
+Modularidade: Regras de negócios são encapsuladas, tornando o código mais limpo.
+Composição: Especificações podem ser combinadas facilmente (And, Or, Not).
+
+
+### Quando evitar?
+Se as regras de validação são simples e não precisam de reutilização.
+Se o número de especificações for muito pequeno, tornando o padrão desnecessário.
+
+
+### Resumo
+O Specification Pattern é ideal para encapsular regras de negócios ou validações complexas de maneira reutilizável e modular. Ele é altamente flexível e se destaca em sistemas que precisam de critérios dinâmicos ou frequentemente alterados. 🚀
+
+---
+
+#### Resumo de DDD - Domain-Driven Design
+Definição:
+O Domain-Driven Design (DDD) é uma abordagem de design de software centrada no domínio e na lógica de negócios. Ele enfatiza a colaboração entre especialistas de domínio e desenvolvedores para criar sistemas que reflitam de maneira fiel as regras, conceitos e processos de um domínio específico.
+
+
+### Princípios Básicos do DDD
+Domínio como Foco Principal:
+
+O domínio é o "mundo" do problema que o software resolve.
+O objetivo é modelar o software para representar os conceitos e regras do domínio real.
+Linguagem Ubiqua (Ubiquitous Language):
+
+Uma linguagem comum e compartilhada entre desenvolvedores e especialistas de domínio.
+Deve ser usada consistentemente no código, documentação e conversas para evitar ambiguidades.
+Modelagem Rica:
+
+Modelos de domínio devem capturar de forma explícita os comportamentos e as regras de negócios.
+
+
+### Camadas do DDD
+#### 1. Camada de Domínio (Core):
+
+Contém as Entidades, Objetos de Valor, Serviços de Domínio e Repositórios.
+Foca na lógica de negócios.
+
+### 2. Camada de Aplicação:
+
+Orquestra as operações do domínio, mas não contém lógica de negócios.
+Serve como uma "ponte" entre o domínio e o mundo exterior.
+
+### 3. Camada de Infraestrutura:
+
+Implementa detalhes técnicos, como persistência (banco de dados) e integrações.
+Dá suporte às camadas superiores.
+
+#### 4. Camada de Apresentação:
+
+
+Exibe as informações e coleta entradas do usuário.
+Pode incluir APIs, interfaces gráficas, etc.
+
+
+
+#### Camadas do DDD
+
+#### 1. Camada de Domínio (Core):
+
+Contém as Entidades, Objetos de Valor, Serviços de Domínio e Repositórios.
+Foca na lógica de negócios.
+
+
+#### 2. Camada de Aplicação:
+
+Orquestra as operações do domínio, mas não contém lógica de negócios.
+Serve como uma "ponte" entre o domínio e o mundo exterior.
+
+
+#### 3. Camada de Infraestrutura:
+
+Implementa detalhes técnicos, como persistência (banco de dados) e integrações.
+Dá suporte às camadas superiores.
+
+
+#### 4. Camada de Apresentação:
+
+Exibe as informações e coleta entradas do usuário.
+Pode incluir APIs, interfaces gráficas, etc.
+
+
+
+
+
+
+Principais Conceitos do DDD
+#### 1. Entidades
+Objetos com identidade única.
+Exemplo: Pedido (Order), Cliente (Customer).
+
+#### 2. Objetos de Valor (Value Objects)
+Objetos imutáveis que não possuem identidade.
+Exemplo: Endereço (Address), CPF.
+
+#### 3. Repositórios
+Abstraem o acesso a dados, permitindo interagir com as Entidades.
+Exemplo: OrderRepository.
+
+#### 4. Serviços de Domínio
+Realizam operações que não pertencem diretamente a uma Entidade ou Objeto de Valor.
+Exemplo: Serviço para calcular frete.
+
+#### 5. Agregados
+Um conjunto de Entidades e Objetos de Valor que são tratados como uma única unidade de consistência.
+Exemplo: Order (Pedido) como um agregado que contém itens (OrderItem).
+
+#### 6. Fábricas
+Responsáveis por criar instâncias de objetos complexos.
+Exemplo: Fábrica para criar uma nova Entidade Order com vários itens.
+
+#### 7. Eventos de Domínio
+Representam algo significativo que aconteceu no domínio.
+Exemplo: PedidoCriado, PagamentoRealizado.
+
+
+
+
+#### Quando Usar DDD?
+#### 1. Domínios Complexos:
+
+Quando as regras de negócios são complicadas e precisam ser bem representadas no código.
+
+
+#### 2. Colaboração Intensa com Especialistas de Domínio:
+
+Quando é essencial que o software reflita de forma precisa os processos do domínio.
+
+#### 3. Evolução Contínua:
+
+Quando o domínio muda frequentemente e precisa de um modelo flexível e claro.
+
+
+
+
+
+
+#### Benefícios do DDD
+Alinhamento com o Negócio: O software reflete fielmente as regras e processos do domínio.
+Reutilização e Clareza: Conceitos bem modelados são reutilizáveis e mais fáceis de entender.
+Facilidade de Manutenção: Modificar o modelo é mais simples porque ele é baseado na lógica de negócios, não em detalhes técnicos.
+
+
+### Desafios do DDD
+Curva de Aprendizado: Exige compreensão profunda dos conceitos e práticas.
+Custo Inicial: Modelar bem o domínio pode levar tempo.
+Nem Sempre Necessário: Em sistemas simples, DDD pode adicionar complexidade desnecessária.
+
+
+
+#### Resumo
+O DDD é ideal para sistemas complexos e com muitas regras de negócios. Ele ajuda a alinhar o software ao domínio real por meio de uma modelagem rica, conceitos claros e uma linguagem comum entre desenvolvedores e especialistas de domínio.
+
+Se precisar de exemplos práticos ou uma introdução detalhada sobre cada componente, é só pedir!
+
+
+### Exemplo Prático de DDD
+Vamos criar um sistema de Gestão de Pedidos (Order Management) com DDD, incluindo os principais conceitos: Entidades, Objetos de Valor, Agregados, Repositórios, Serviços de Domínio e Eventos de Domínio.
+
+
+
+
+
+### Cenário
+1. Um cliente realiza um pedido.
+2. O pedido contém itens e tem regras de negócios, como calcular o total.
+3. O sistema deve ser capaz de persistir os pedidos e notificar eventos como "Pedido Criado".
+
+
+
+
+
+#### Passo a Passo
+### 1. Entidades
+Vamos criar a entidade Order, que representa um pedido. Ela terá uma identidade única (Id) e itens.
+
+
+
+    ```
+    public class Order
+    {
+        public Guid Id { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+        public List<OrderItem> Items { get; private set; }
+        public decimal Total { get; private set; }
+
+        public Order()
+        {
+            Id = Guid.NewGuid();
+            CreatedAt = DateTime.UtcNow;
+            Items = new List<OrderItem>();
+        }
+
+        public void AddItem(OrderItem item)
+        {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+            Items.Add(item);
+            CalculateTotal();
+        }
+
+        private void CalculateTotal()
+        {
+            Total = Items.Sum(i => i.Total);
+        }
+    }
+
+    ```
+
+### 2. Objeto de Valor
+O item do pedido (OrderItem) é um Value Object porque sua identidade é irrelevante no domínio. O que importa são os valores.
+
+    ```
+    public class OrderItem
+    {
+        public string ProductName { get; private set; }
+        public int Quantity { get; private set; }
+        public decimal UnitPrice { get; private set; }
+        public decimal Total => Quantity * UnitPrice;
+
+        public OrderItem(string productName, int quantity, decimal unitPrice)
+        {
+            if (string.IsNullOrWhiteSpace(productName)) throw new ArgumentException("Product name is required.");
+            if (quantity <= 0) throw new ArgumentException("Quantity must be greater than zero.");
+            if (unitPrice <= 0) throw new ArgumentException("Unit price must be greater than zero.");
+
+            ProductName = productName;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
+        }
+    }
+    ```
+
+### 3. Repositório
+O Repositório encapsula o acesso ao banco de dados. Vamos criar um repositório para pedidos.
+
+    ```
+    public interface IOrderRepository
+    {
+        void Add(Order order);
+        Order GetById(Guid id);
+        IEnumerable<Order> GetAll();
+    }
+    ```
+
+Implementação usando uma lista em memória (simulação):
+
+    ```
+    public class InMemoryOrderRepository : IOrderRepository
+    {
+        private readonly List<Order> _orders = new List<Order>();
+
+        public void Add(Order order)
+        {
+            _orders.Add(order);
+        }
+
+        public Order GetById(Guid id)
+        {
+            return _orders.FirstOrDefault(o => o.Id == id);
+        }
+
+        public IEnumerable<Order> GetAll()
+        {
+            return _orders;
+        }
+    }
+    ```
+
+
+### 4. Serviço de Domínio
+Vamos criar um serviço de domínio para realizar operações específicas, como criar um pedido e calcular o total.
+
+    ```
+    public class OrderService
+    {
+        private readonly IOrderRepository _repository;
+
+        public OrderService(IOrderRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public Order CreateOrder(List<OrderItem> items)
+        {
+            var order = new Order();
+
+            foreach (var item in items)
+            {
+                order.AddItem(item);
+            }
+
+            _repository.Add(order);
+
+            // Publicar evento (simulação)
+            Console.WriteLine($"Order Created: {order.Id}, Total: {order.Total:C}");
+
+            return order;
+        }
+    }
+    ```
+
+
+
+### 5. Evento de Domínio
+Um evento de domínio pode ser disparado após a criação de um pedido.
+
+    ```
+    public class OrderCreatedEvent
+    {
+        public Guid OrderId { get; }
+        public decimal Total { get; }
+
+        public OrderCreatedEvent(Guid orderId, decimal total)
+        {
+            OrderId = orderId;
+            Total = total;
+        }
+    }
+
+    // Simulação de um "publicador de eventos"
+    public static class EventPublisher
+    {
+        public static void Publish(OrderCreatedEvent orderEvent)
+        {
+            Console.WriteLine($"Event Published: OrderId = {orderEvent.OrderId}, Total = {orderEvent.Total:C}");
+        }
+    }
+    ```
+
+### 6. Uso do Sistema
+
+    ```
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Repositório (In-Memory)
+            IOrderRepository repository = new InMemoryOrderRepository();
+
+            // Serviço de domínio
+            var orderService = new OrderService(repository);
+
+            // Criar itens do pedido
+            var items = new List<OrderItem>
+            {
+                new OrderItem("Laptop", 1, 1500.00m),
+                new OrderItem("Mouse", 2, 25.00m)
+            };
+
+            // Criar pedido
+            var order = orderService.CreateOrder(items);
+
+            // Publicar evento de domínio
+            var orderEvent = new OrderCreatedEvent(order.Id, order.Total);
+            EventPublisher.Publish(orderEvent);
+
+            // Recuperar pedido pelo repositório
+            var savedOrder = repository.GetById(order.Id);
+            Console.WriteLine($"Saved Order: {savedOrder.Id}, Total: {savedOrder.Total:C}");
+        }
+    }
+    ```
+
+#### Saída Esperada
+
+    ```
+    Order Created: 123e4567-e89b-12d3-a456-426614174000, Total: $1,550.00
+    Event Published: OrderId = 123e4567-e89b-12d3-a456-426614174000, Total: $1,550.00
+    Saved Order: 123e4567-e89b-12d3-a456-426614174000, Total: $1,550.00
+    ```
+
+
+### Conclusão
+Esse exemplo prático demonstra como usar os conceitos de DDD para modelar um sistema de Gestão de Pedidos, separando claramente as responsabilidades:
+
+Entidades: Order.
+Objetos de Valor: OrderItem.
+Repositório: IOrderRepository.
+Serviço de Domínio: OrderService.
+Eventos de Domínio: OrderCreatedEvent.
+
+
+
+---
+
+
+### CQRS - Command Query Responsibility Segregation
+Definição:
+CQRS (Separação de Responsabilidade entre Comando e Consulta) é um padrão arquitetural que divide a responsabilidade de leitura (queries) e escrita (commands) em modelos separados. Ele melhora a escalabilidade e simplifica operações complexas, especialmente em sistemas com alta concorrência ou requisitos de performance.
+
+
+### Princípios do CQRS
+Separação de Responsabilidades:
+Comandos: Alteram o estado do sistema (escrita).
+Consultas: Lêem o estado do sistema (leitura).
+Modelos Independentes:
+O modelo de leitura pode ser otimizado para consultas rápidas.
+O modelo de escrita pode ser mais rigoroso, garantindo consistência.
+
+
+
+### Benefícios do CQRS
+Escalabilidade: Permite escalonar leitura e escrita de forma independente.
+Desempenho: As consultas podem usar um banco otimizado, como cache ou um banco NoSQL.
+Flexibilidade: Facilita a implementação de arquiteturas event-driven (baseadas em eventos).
+Simplicidade: Mantém comandos e consultas focados em suas responsabilidades.
+
+
+### Exemplo Prático de CQRS
+Cenário
+Um sistema de Pedidos precisa:
+
+Criar novos pedidos.
+Consultar detalhes e listas de pedidos rapidamente.
+Vamos implementar CQRS separando os modelos de leitura e escrita.
+
+
+### 1. Modelo de Domínio (Escrita)
+Criamos uma entidade de domínio Order que representa o estado do pedido.
+
+
+    ```
+    public class Order
+    {
+        public Guid Id { get; private set; }
+        public string CustomerName { get; private set; }
+        public List<OrderItem> Items { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+
+        public Order(string customerName)
+        {
+            Id = Guid.NewGuid();
+            CustomerName = customerName;
+            Items = new List<OrderItem>();
+            CreatedAt = DateTime.UtcNow;
+        }
+
+        public void AddItem(string productName, int quantity, decimal unitPrice)
+        {
+            Items.Add(new OrderItem(productName, quantity, unitPrice));
+        }
+    }
+
+    public class OrderItem
+    {
+        public string ProductName { get; private set; }
+        public int Quantity { get; private set; }
+        public decimal UnitPrice { get; private set; }
+        public decimal Total => Quantity * UnitPrice;
+
+        public OrderItem(string productName, int quantity, decimal unitPrice)
+        {
+            ProductName = productName;
+            Quantity = quantity;
+            UnitPrice = unitPrice;
+        }
+    }
+    ```
+
+### 2. Comandos (Escrita)
+Criamos comandos para realizar operações no sistema de escrita.
+
+    ```
+    public class CreateOrderCommand
+    {
+        public string CustomerName { get; set; }
+        public List<CreateOrderItemCommand> Items { get; set; }
+    }
+
+    public class CreateOrderItemCommand
+    {
+        public string ProductName { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+    ```
+
+### 3. Command Handler
+O Command Handler executa as operações solicitadas pelos comandos.
+
+    ```
+    public class CreateOrderCommandHandler
+    {
+        private readonly IOrderRepository _repository;
+
+        public CreateOrderCommandHandler(IOrderRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public void Handle(CreateOrderCommand command)
+        {
+            var order = new Order(command.CustomerName);
+
+            foreach (var item in command.Items)
+            {
+                order.AddItem(item.ProductName, item.Quantity, item.UnitPrice);
+            }
+
+            _repository.Save(order);
+        }
+    }
+    ```
+
+### 4. Modelo de Leitura
+O modelo de leitura é otimizado para consultas rápidas, sem depender diretamente do modelo de escrita.
+
+    ```
+    public class OrderReadModel
+    {
+        public Guid Id { get; set; }
+        public string CustomerName { get; set; }
+        public decimal Total { get; set; }
+    }
+    ```
+
+
+### 5. Queries
+As consultas retornam dados diretamente do modelo de leitura.
+    
+    ```
+    public interface IOrderReadRepository
+    {
+        IEnumerable<OrderReadModel> GetAllOrders();
+        OrderReadModel GetOrderById(Guid id);
+    }
+    ```
+
+Implementação em memória para simulação:
+
+    ```
+    public class InMemoryOrderReadRepository : IOrderReadRepository
+    {
+        private readonly List<OrderReadModel> _readModels = new List<OrderReadModel>();
+
+        public void Add(Order order)
+        {
+            _readModels.Add(new OrderReadModel
+            {
+                Id = order.Id,
+                CustomerName = order.CustomerName,
+                Total = order.Items.Sum(i => i.Total)
+            });
+        }
+
+        public IEnumerable<OrderReadModel> GetAllOrders()
+        {
+            return _readModels;
+        }
+
+        public OrderReadModel GetOrderById(Guid id)
+        {
+            return _readModels.FirstOrDefault(o => o.Id == id);
+        }
+    }
+
+    ```
+
+
+### 6. Uso do CQRS
+
+    ```
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Repositórios
+            var orderWriteRepository = new InMemoryOrderWriteRepository();
+            var orderReadRepository = new InMemoryOrderReadRepository();
+
+            // Command Handler
+            var createOrderHandler = new CreateOrderCommandHandler(orderWriteRepository);
+
+            // Criar um pedido
+            var command = new CreateOrderCommand
+            {
+                CustomerName = "John Doe",
+                Items = new List<CreateOrderItemCommand>
+                {
+                    new CreateOrderItemCommand { ProductName = "Laptop", Quantity = 1, UnitPrice = 1500 },
+                    new CreateOrderItemCommand { ProductName = "Mouse", Quantity = 2, UnitPrice = 50 }
+                }
+            };
+
+            createOrderHandler.Handle(command);
+
+            // Atualizar o modelo de leitura (simulação)
+            var savedOrder = orderWriteRepository.GetLastOrder();
+            orderReadRepository.Add(savedOrder);
+
+            // Consultar pedidos
+            var orders = orderReadRepository.GetAllOrders();
+            foreach (var order in orders)
+            {
+                Console.WriteLine($"Order ID: {order.Id}, Customer: {order.CustomerName}, Total: {order.Total:C}");
+            }
+        }
+    }
+    ```
+
+
+### Saída Esperada
+
+    ```
+    Order ID: 123e4567-e89b-12d3-a456-426614174000, Customer: John Doe, Total: $1,600.00
+    ```
+
+### Vantagens do CQRS no Exemplo
+Separação de Responsabilidades: Leitura (OrderReadRepository) e escrita (OrderWriteRepository) são independentes.
+Otimização: O modelo de leitura é mais simples e direto.
+Flexibilidade: O modelo de leitura pode usar uma abordagem diferente de persistência, como um banco NoSQL.
+
+
+### Conclusão
+O CQRS é uma poderosa abordagem para sistemas que precisam lidar com grandes volumes de leitura e escrita, mantendo código organizado e eficiente. Ele também facilita a introdução de event sourcing para capturar todas as mudanças no estado. 🚀
+
+---
+
+
+
+### Mediator Pattern - Padrão Mediador
+Definição:
+O Mediator Pattern é um padrão comportamental que facilita a comunicação entre objetos sem que eles precisem se referenciar diretamente. Ele promove o desacoplamento ao centralizar a comunicação em uma única classe chamada mediador.
+
+
+### Quando usar?
+Quando há múltiplos objetos que precisam se comunicar entre si.
+Quando deseja reduzir dependências diretas entre classes.
+Quando a lógica de comunicação entre objetos se torna complexa.
+
+
+#### Benefícios
+Desacoplamento: Reduz dependências diretas entre objetos.
+Centralização: Toda a lógica de comunicação é gerenciada pelo mediador.
+Facilidade de Manutenção: Alterar a comunicação entre objetos impacta apenas o mediador.
+
+
+### Exemplo Prático
+Cenário
+Em um sistema de chat, vários usuários podem enviar e receber mensagens. Em vez de os usuários se comunicarem diretamente, o mediador (um "servidor de chat") gerencia todas as mensagens e distribui para os destinatários corretos.
+
+
+### Implementação
+
+
+### 1. Interface do Mediador
+Define o contrato para comunicação.
+
+
+
+    ```
+    public interface IChatMediator
+    {
+        void RegisterUser(ChatUser user);
+        void SendMessage(string message, ChatUser sender);
+    }
+    ```
+
+### 2. Implementação do Mediador
+Gerencia os usuários e distribui mensagens.
+
+    ```
+    public class ChatMediator : IChatMediator
+    {
+        private readonly List<ChatUser> _users = new List<ChatUser>();
+
+        public void RegisterUser(ChatUser user)
+        {
+            _users.Add(user);
+        }
+
+        public void SendMessage(string message, ChatUser sender)
+        {
+            foreach (var user in _users)
+            {
+                if (user != sender)
+                {
+                    user.ReceiveMessage(message, sender);
+                }
+            }
+        }
+    }
+    ```
+
+### 3. Classe Base para os Usuários
+Define o comportamento comum entre os usuários.
+
+
+    ```
+    public abstract class ChatUser
+    {
+        protected IChatMediator Mediator;
+        public string Name { get; }
+
+        protected ChatUser(IChatMediator mediator, string name)
+        {
+            Mediator = mediator;
+            Name = name;
+        }
+
+        public abstract void SendMessage(string message);
+        public abstract void ReceiveMessage(string message, ChatUser sender);
+    }
+    ```
+
+### 4. Implementação dos Usuários
+Cada usuário usa o mediador para enviar mensagens.
+
+    ```
+    public class User : ChatUser
+    {
+        public User(IChatMediator mediator, string name) : base(mediator, name) { }
+
+        public override void SendMessage(string message)
+        {
+            Console.WriteLine($"{Name} sends: {message}");
+            Mediator.SendMessage(message, this);
+        }
+
+        public override void ReceiveMessage(string message, ChatUser sender)
+        {
+            Console.WriteLine($"{Name} received from {sender.Name}: {message}");
+        }
+    }
+    ```
+
+
+### 5. Uso do Mediator
+
+    ```
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Criar o mediador
+            IChatMediator chatMediator = new ChatMediator();
+
+            // Criar usuários e registrá-los no mediador
+            var user1 = new User(chatMediator, "Alice");
+            var user2 = new User(chatMediator, "Bob");
+            var user3 = new User(chatMediator, "Charlie");
+
+            chatMediator.RegisterUser(user1);
+            chatMediator.RegisterUser(user2);
+            chatMediator.RegisterUser(user3);
+
+            // Enviar mensagens
+            user1.SendMessage("Hello, everyone!");
+            user2.SendMessage("Hi, Alice!");
+            user3.SendMessage("Good morning!");
+        }
+    }
+
+    ```
+
+### Saída Esperada
+
+    ```
+    Alice sends: Hello, everyone!
+    Bob received from Alice: Hello, everyone!
+    Charlie received from Alice: Hello, everyone!
+
+    Bob sends: Hi, Alice!
+    Alice received from Bob: Hi, Alice!
+    Charlie received from Bob: Hi, Alice!
+
+    Charlie sends: Good morning!
+    Alice received from Charlie: Good morning!
+    Bob received from Charlie: Good morning!
+    ```
+
+### Vantagens do Mediator Pattern
+
+1. Redução de Dependências:
+Os objetos se comunicam através do mediador, e não diretamente entre si.
+
+2. Centralização da Lógica:
+Facilita o controle e a modificação das interações.
+
+3. Flexibilidade:
+Novos objetos podem ser adicionados sem alterar os já existentes.
+
+### Quando evitar?
+Se o mediador crescer muito em complexidade, ele pode se tornar um "ponto único de falha".
+Se o número de interações for simples, o padrão pode ser um exagero.
+
+
+### Resumo
+O Mediator Pattern é ideal para sistemas onde muitos objetos precisam interagir entre si, mas não devem conhecer uns aos outros diretamente. Ele centraliza a comunicação, melhorando a modularidade e a escalabilidade do sistema. 🚀
 
 
