@@ -1,0 +1,110 @@
+﻿KISS - Keep It Simple, Stupid (Mantenha Isso Simples, Estúpido)
+Definição:
+O princípio KISS afirma que os sistemas e códigos devem ser mantidos o mais simples possível. 
+Soluções complicadas aumentam a dificuldade de manutenção e introduzem potenciais bugs. Sempre prefira implementações claras e diretas.
+
+
+Por que é importante?
+Fácil de entender: Um código simples é mais legível para você e outros desenvolvedores.
+Reduz erros: Menos complexidade significa menos áreas propensas a falhas.
+Facilita a manutenção: Soluções simples são mais fáceis de ajustar e expandir.
+
+
+
+Exemplo - Sem KISS (Errado)
+
+public int CalculateSumOfEvenNumbers(int[] numbers)
+{
+    int sum = 0;
+    for (int i = 0; i < numbers.Length; i++)
+    {
+        if (numbers[i] % 2 == 0)
+        {
+            sum += numbers[i];
+        }
+    }
+    return sum;
+}
+
+Embora o código funcione, ele é mais complexo do que precisa ser. Podemos simplificá-lo.
+
+
+
+
+
+Exemplo - Com KISS (Certo)
+
+public int CalculateSumOfEvenNumbers(int[] numbers)
+{
+    return numbers.Where(n => n % 2 == 0).Sum();
+}
+
+Por que está certo?
+
+O uso de LINQ simplifica a lógica.
+Mais legível e direto ao ponto.
+
+
+Exemplo 2 - Sem KISS (Errado)
+
+public string GetStatus(int statusCode)
+{
+    if (statusCode == 1)
+    {
+        return "Success";
+    }
+    else if (statusCode == 2)
+    {
+        return "Error";
+    }
+    else if (statusCode == 3)
+    {
+        return "Pending";
+    }
+    else
+    {
+        return "Unknown";
+    }
+}
+
+
+
+
+
+Problemas:
+
+Muitas condições tornam o código mais difícil de ler e manter.
+É propenso a erros caso sejam adicionados novos códigos de status.
+
+
+Exemplo 2 - Com KISS (Certo)
+
+public string GetStatus(int statusCode)
+{
+    return statusCode switch
+    {
+        1 => "Success",
+        2 => "Error",
+        3 => "Pending",
+        _ => "Unknown"
+    };
+}
+
+
+Por que está certo?
+
+O uso do switch torna o código mais compacto e fácil de entender.
+Simplicidade na adição de novos casos no futuro.
+
+Como aplicar KISS no dia a dia?
+Evite over-engineering: Não adicione complexidade desnecessária.
+Use padrões e ferramentas apropriadas: Aproveite recursos da linguagem para simplificar seu código (ex.: LINQ, switch, etc.).
+Divida responsabilidades: Evite métodos ou classes que fazem "tudo".
+Revisão constante: Sempre pergunte: "Isso poderia ser mais simples?"
+
+
+Resumo
+Soluções simples são frequentemente as mais eficazes. Aplique o KISS escrevendo código direto, que faça apenas o necessário e seja fácil de entender. Evite complicar! 🚀
+
+
+

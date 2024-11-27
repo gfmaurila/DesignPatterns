@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DesignPatterns.YAGNI;
+﻿namespace DesignPatterns.YAGNI;
 
 
 //YAGNI - You Aren't Gonna Need It (Você Não Vai Precisar Disso)
