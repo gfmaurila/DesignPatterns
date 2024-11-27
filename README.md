@@ -1448,34 +1448,26 @@ Ele tem um Id único.
             <th>Entity</th>
             <th>Value Object</th>
         </tr>
-
-
-
         <tr>
             <td>Identidade</td>
             <td>Identidade única (Id).</td>
             <td>Não possui identidade única.</td>
         </tr>
-
         <tr>
             <td>Comparação</td>
             <td>Comparada por referência ou Id.</td>
             <td>Comparada por valores.</td>
         </tr>
-
         <tr>
             <td>Persistência</td>
             <td>Geralmente armazenada no banco.</td>
             <td>Geralmente parte de uma entidade.</td>
         </tr>
-
         <tr>
             <td>Mutabilidade</td>
-            <td>Pode ser mutável.	</td>
+            <td>Pode ser mutável.</td>
             <td>É imutável.</td>
         </tr>
-
-
     </table>
 </div>
 
