@@ -23,12 +23,12 @@ public class Errado_PaymentProcessor
 }
 
 // Certo: Usar herança e polimorfismo para estender comportamentos
-public abstract class Certo_PaymentMethod
+public abstract class PaymentMethod
 {
     public abstract void ProcessPayment();
 }
 
-public class CreditCardPayment : Certo_PaymentMethod
+public class CreditCardPayment : PaymentMethod
 {
     public override void ProcessPayment()
     {
@@ -36,7 +36,7 @@ public class CreditCardPayment : Certo_PaymentMethod
     }
 }
 
-public class PayPalPayment : Certo_PaymentMethod
+public class PayPalPayment : PaymentMethod
 {
     public override void ProcessPayment()
     {
@@ -46,7 +46,7 @@ public class PayPalPayment : Certo_PaymentMethod
 
 public class PaymentProcessor
 {
-    public void ProcessPayment(Certo_PaymentMethod paymentMethod)
+    public void ProcessPayment(PaymentMethod paymentMethod)
     {
         paymentMethod.ProcessPayment();
     }

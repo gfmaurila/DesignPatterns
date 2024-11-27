@@ -19,7 +19,7 @@ public class Errado_UserService
 }
 
 // Certo: Separação de responsabilidades
-public class Certo_UserService
+public class UserService
 {
     public void RegisterUser(string username, string password)
     {

@@ -21,14 +21,14 @@ public class Errado_Penguin : Errado_Bird
 }
 
 // Certo: Usar uma hierarquia mais precisa
-public abstract class Certo_Bird { }
+public abstract class Bird { }
 
-public class Certo_FlyingBird : Certo_Bird
+public class FlyingBird : Bird
 {
     public void Fly() { }
 }
 
-public class Certo_Penguin : Certo_Bird
+public class Penguin : Bird
 {
     // Pinguins não têm o método Fly
 }
