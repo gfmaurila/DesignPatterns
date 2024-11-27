@@ -1440,12 +1440,42 @@ Ele tem um Id único.
 
 
 ### Diferença entre Entidades e Value Objects
-| Aspecto	       | Entity	                               | Value Object
-| Identidade	   | Identidade única (Id).	               | Não possui identidade única.
-| Comparação	   | Comparada por referência ou Id.	   | Comparada por valores.
-| Persistência     | Geralmente armazenada no banco.	   | Geralmente parte de uma entidade.
-| Mutabilidade     | Pode ser mutável.	                   | É imutável.
 
+    <table>
+        <tr>
+            <th>Aspecto</th>
+            <th>Entity</th>
+            <th>Value Object</th>
+        </tr>
+
+
+
+        <tr>
+            <td>Identidade</td>
+            <td>Identidade única (Id).</td>
+            <td>Não possui identidade única.</td>
+        </tr>
+
+        <tr>
+            <td>Comparação</td>
+            <td>Comparada por referência ou Id.</td>
+            <td>Comparada por valores.</td>
+        </tr>
+
+        <tr>
+            <td>Persistência</td>
+            <td>Geralmente armazenada no banco.</td>
+            <td>Geralmente parte de uma entidade.</td>
+        </tr>
+
+        <tr>
+            <td>Mutabilidade</td>
+            <td>Pode ser mutável.	</td>
+            <td>É imutável.</td>
+        </tr>
+
+
+    </table>
 
 
 ### Quando usar Entidades?
