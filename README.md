@@ -701,5 +701,265 @@ Modularidade: Objetos encapsulam dados e comportamentos relacionados.
 Facilidade de Manutenção: Alterações em uma classe afetam apenas o que está relacionado a ela.
 Escalabilidade: Novas funcionalidades podem ser adicionadas facilmente.
 
+---
+
+
+### Factory Pattern - Padrão de Fábrica
+
+Definição:
+O Factory Pattern é um padrão de criação que fornece uma interface para criar objetos em uma superclasse, mas permite que as subclasses alterem o tipo de objeto criado.
+
+### Quando usar?
+
+Quando a lógica de criação de objetos é complexa ou precisa ser centralizada.
+Quando você deseja que a criação do objeto seja flexível e desacoplada do código cliente.
+
+
+
+### Exemplo Simples em C#
+
+### Sem Factory (Errado)
+O cliente precisa saber detalhes de implementação para criar os objetos.
+
+
+    ```
+    public class Car
+    {
+        public string Model { get; set; }
+    }
+
+    public class Bike
+    {
+        public string Type { get; set; }
+    }
+
+    // Código cliente
+    Car car = new Car { Model = "Sedan" };
+    Bike bike = new Bike { Type = "Mountain" };
+
+    ```
+
+
+### Problemas:
+
+O cliente precisa instanciar diretamente as classes.
+A lógica de criação de objetos fica espalhada no código.
+
+
+### Com Factory (Certo)
+Centralizamos a lógica de criação em uma fábrica.
+
+
+    ```
+    // Definição de um tipo base
+    public interface IVehicle
+    {
+        void Drive();
+    }
+
+    // Implementações concretas
+    public class Car : IVehicle
+    {
+        public void Drive()
+        {
+            Console.WriteLine("Driving a car!");
+        }
+    }
+
+    public class Bike : IVehicle
+    {
+        public void Drive()
+        {
+            Console.WriteLine("Riding a bike!");
+        }
+    }
+
+    // Fábrica para criar objetos
+    public class VehicleFactory
+    {
+        public static IVehicle CreateVehicle(string vehicleType)
+        {
+            return vehicleType.ToLower() switch
+            {
+                "car" => new Car(),
+                "bike" => new Bike(),
+                _ => throw new ArgumentException("Invalid vehicle type")
+            };
+        }
+    }
+
+    // Código cliente
+    IVehicle vehicle = VehicleFactory.CreateVehicle("car");
+    vehicle.Drive(); // Output: "Driving a car!"
+
+    vehicle = VehicleFactory.CreateVehicle("bike");
+    vehicle.Drive(); // Output: "Riding a bike!"
+    ```
+
+
+## Vantagens do Factory Pattern
+Centralização da lógica de criação: Todo o código de criação de objetos fica em um único lugar.
+Flexibilidade: É fácil adicionar novos tipos de objetos sem alterar o código cliente.
+Desacoplamento: O cliente não precisa saber detalhes das classes concretas.
+
+
+### Quando evitar?
+Quando a lógica de criação é simples e não há necessidade de abstração.
+Em sistemas pequenos, o uso do padrão pode adicionar complexidade desnecessária.
+
+
+
+### Exemplo no mundo real
+
+    
+#### ApiClientFactory
+
+Descrição: Classe responsável por criar instâncias de clientes HTTP configurados para se comunicar com uma API específica. Ela utiliza o padrão Factory para garantir que todas as instâncias sejam criadas de forma consistente.
+    
+
+    ```
+    using System.Net.Http;
+    using Refit;
+
+    namespace GenericNamespace.ApiFactory;
+
+    public sealed class ApiClientFactory : IApiClientFactory
+    {
+        private readonly IHttpClientFactory _httpClientProvider;
+
+        public ApiClientFactory(IHttpClientFactory httpClientProvider)
+        {
+            _httpClientProvider = httpClientProvider;
+        }
+
+        public IApiClient Create()
+        {
+            var httpClient = _httpClientProvider.CreateClient(nameof(IApiClientFactory));
+
+            return RestService.For<IApiClient>(httpClient, RefitSettings.DefaultSettings);
+        }
+    }
+    ```
+
+### ApiClientFactoryBuilder
+
+Descrição: Classe estática que configura o cliente HTTP, define políticas de retry (reexecução) e gerencia outras configurações, como validação de SSL, timeout e autenticação. É usada para registrar as dependências necessárias no contêiner de injeção de dependência (DI).
+
+
+    ```
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
+    using Polly;
+    using Refit;
+    using System;
+    using System.Net.Http;
+    using System.Net.Http.Headers;
+
+    namespace GenericNamespace.ApiFactory;
+
+    public static class ApiClientFactoryBuilder
+    {
+        public static void ConfigureApiClientFactory(this IServiceCollection services)
+        {
+            var config = ApplicationContext.Instance.ApplicationConfiguration.Configuration;
+
+            var apiBaseUrl = config.GetValue<string>(ApiClientParameters.BaseUrl) ?? string.Empty;
+            var requestTimeout = config.GetValue<int>(ApiClientParameters.Timeout);
+            var sslValidationEnabled = config.GetValue<bool>(ApiClientParameters.ValidateSslCertificates);
+            var retryDelaySeconds = config.GetValue<int>(ApiClientParameters.RetryDelaySeconds);
+            var maxRetryAttempts = config.GetValue<int>(ApiClientParameters.MaxRetryAttempts);
+            var apiClientId = config.GetValue<string>(ApiClientParameters.ClientId);
+            var apiClientSecret = config.GetValue<string>(ApiClientParameters.ClientSecret);
+
+            var retryPolicy = Policy<HttpResponseMessage>
+                .Handle<TimeoutException>()
+                .Or<HttpRequestException>()
+                .Or<ApiException>()
+                .WaitAndRetryAsync(
+                    retryCount: maxRetryAttempts,
+                    sleepDurationProvider: _ => TimeSpan.FromSeconds(retryDelaySeconds),
+                    onRetry: (result, timespan, count, context) =>
+                    {
+                        ApplicationContext.Instance.Resolve<ILogger<ApiClientFactoryBuilder>>()
+                            .LogWarning("Retrying API call to {0} due to error: {1}, retry attempt: {2}", apiBaseUrl, result.Exception, count);
+                    });
+
+            services.AddHttpClient<IApiClientFactory>(client =>
+            {
+                client.BaseAddress = new Uri(apiBaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(requestTimeout);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Add("client_id", apiClientId);
+                client.DefaultRequestHeaders.Add("client_secret", apiClientSecret);
+            }).ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var handler = new HttpClientHandler();
+                if (!sslValidationEnabled)
+                    handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+                return handler;
+            }).AddPolicyHandler(retryPolicy);
+
+            services.AddRefitClient<IApiClient>(RefitSettings.DefaultSettings)
+                .ConfigureHttpClient(client =>
+                {
+                    client.BaseAddress = new Uri(apiBaseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(requestTimeout);
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    client.DefaultRequestHeaders.Add("client_id", apiClientId);
+                    client.DefaultRequestHeaders.Add("client_secret", apiClientSecret);
+                }).ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    var handler = new HttpClientHandler();
+                    if (!sslValidationEnabled)
+                        handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+                    return handler;
+                }).AddPolicyHandler(retryPolicy);
+        }
+    }
+
+    ```
+
+#### ApiClientParameters
+
+Descrição: Classe que define constantes para as chaves de configuração relacionadas ao cliente da API, como URL base, timeout, validação de certificados SSL e credenciais de autenticação.
+
+
+
+    ```
+    namespace GenericNamespace.ApiFactory;
+
+    public class ApiClientParameters
+    {
+        protected ApiClientParameters() { }
+
+        public const string BaseUrl = "ApiSettings:BaseUrl";
+        public const string Timeout = "ApiSettings:Timeout";
+        public const string ValidateSslCertificates = "ApiSettings:ValidateSslCertificates";
+        public const string RetryDelaySeconds = "ApiSettings:RetryPolicy:RetryDelaySeconds";
+        public const string MaxRetryAttempts = "ApiSettings:RetryPolicy:MaxRetryAttempts";
+        public const string ClientId = "ApiSettings:Authentication:ClientId";
+        public const string ClientSecret = "ApiSettings:Authentication:ClientSecret";
+    }
+
+    ```
+
+
+### IApiClientFactory
+
+Descrição: Interface que define o contrato para uma fábrica de clientes API. Contém o método Create, que é responsável por criar instâncias de clientes API.
+
+
+    ```
+    namespace GenericNamespace.ApiFactory;
+
+    public interface IApiClientFactory
+    {
+        IApiClient Create();
+    }
+
+    ```
+
+
 
 
