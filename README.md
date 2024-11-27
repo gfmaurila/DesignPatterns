@@ -1478,4 +1478,250 @@ Quando o conceito modelado pode mudar ao longo do tempo.
 
 ---
 
+### Facade Pattern - Padrão Fachada
+Definição:
+O Facade Pattern (ou Fachada) é um padrão de design estrutural que fornece uma interface simplificada para um subsistema complexo. 
+Ele ajuda a encapsular a complexidade, expondo apenas os métodos necessários para o cliente, tornando o sistema mais fácil de usar.
+
+
+### Quando usar?
+Quando um subsistema tem muitas classes e você deseja ocultar sua complexidade.
+Para criar uma interface de alto nível que facilita o uso de subsistemas complexos.
+Para desacoplar clientes da implementação interna de subsistemas.
+
+### Exemplo Prático
+Cenário
+Imagine um sistema de e-commerce com funcionalidades como:
+
+Processamento de pedidos.
+Envio de notificações.
+Pagamento.
+Essas funcionalidades são implementadas em classes diferentes. O cliente precisa de uma interface simplificada para realizar todas as operações necessárias sem lidar diretamente com cada classe.
+
+
+### Sem Facade (Errado)
+O cliente precisa interagir com várias classes diretamente.
+
+
+    ```
+    public class OrderService
+    {
+        public void PlaceOrder(string product)
+        {
+            Console.WriteLine($"Order placed for {product}");
+        }
+    }
+
+    public class PaymentService
+    {
+        public void ProcessPayment(string product)
+        {
+            Console.WriteLine($"Payment processed for {product}");
+        }
+    }
+
+    public class NotificationService
+    {
+        public void SendNotification(string message)
+        {
+            Console.WriteLine($"Notification sent: {message}");
+        }
+    }
+
+    // Código cliente
+    var orderService = new OrderService();
+    var paymentService = new PaymentService();
+    var notificationService = new NotificationService();
+
+    string product = "Laptop";
+    orderService.PlaceOrder(product);
+    paymentService.ProcessPayment(product);
+    notificationService.SendNotification($"Order for {product} confirmed.");
+
+    ```
+
+
+### Problemas:
+
+O cliente precisa conhecer e coordenar todas as classes.
+Aumenta a complexidade e dificulta mudanças no subsistema.
+
+
+
+### Com Facade (Certo)
+Criamos uma classe ECommerceFacade que simplifica as operações para o cliente.
+
+
+    ```
+    // Subsistemas
+    public class OrderService
+    {
+        public void PlaceOrder(string product)
+        {
+            Console.WriteLine($"Order placed for {product}");
+        }
+    }
+
+    public class PaymentService
+    {
+        public void ProcessPayment(string product)
+        {
+            Console.WriteLine($"Payment processed for {product}");
+        }
+    }
+
+    public class NotificationService
+    {
+        public void SendNotification(string message)
+        {
+            Console.WriteLine($"Notification sent: {message}");
+        }
+    }
+
+    // Fachada
+    public class ECommerceFacade
+    {
+        private readonly OrderService _orderService = new OrderService();
+        private readonly PaymentService _paymentService = new PaymentService();
+        private readonly NotificationService _notificationService = new NotificationService();
+
+        public void CompleteOrder(string product)
+        {
+            _orderService.PlaceOrder(product);
+            _paymentService.ProcessPayment(product);
+            _notificationService.SendNotification($"Order for {product} confirmed.");
+        }
+    }
+
+    // Código cliente
+    var eCommerceFacade = new ECommerceFacade();
+    eCommerceFacade.CompleteOrder("Laptop");
+
+    ```
+
+
+
+### Resultado:
+
+O cliente interage apenas com a Facade.
+A lógica de coordenação entre subsistemas está encapsulada.
+
+
+### Exemplo mundo real
+
+
+### Como o padrão é aplicado nesta classe?
+
+1 - Ocultação de Complexidade:
+
+A classe EntityDataFacade atua como uma fachada que abstrai as chamadas para:
+Um command store local (IEntityCommandStore) para buscar ou registrar os dados.
+Uma API externa (IExternalApi) para buscar dados adicionais quando necessário.
+
+2 - Interface Unificada:
+
+O método IEntityDataFacade encapsula toda a lógica de:
+Verificar se os dados estão disponíveis localmente.
+Buscar os dados na API externa caso não estejam.
+Tratar exceções e armazenar os dados no sistema local para uso futuro.
+
+
+3 - Coordenação de Subsistemas:
+
+A classe coordena diferentes serviços (como o API Factory, command store e logger) para cumprir sua responsabilidade de fornecer os dados da cooperativa.
+    
+
+
+    ```
+    using System;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Microsoft.Extensions.Logging;
+
+    namespace GenericNamespace.Facade;
+
+    public class EntityDataFacade : IEntityDataFacade
+    {
+        private readonly IExternalApi _externalApi;
+        private readonly IEntityCommandStore _entityCommandStore;
+        private readonly ILogger<EntityDataFacade> _logger;
+
+        public EntityDataFacade(IExternalApiFactory externalApiFactory,
+                                IEntityCommandStore entityCommandStore,
+                                ILogger<EntityDataFacade> logger)
+        {
+            _entityCommandStore = entityCommandStore;
+            _externalApi = externalApiFactory.Create();
+            _logger = logger;
+        }
+
+        public async Task<Entity> GetEntityByCode(int entityCode)
+        {
+            var entity = await _entityCommandStore.GetEntityByCode(entityCode);
+
+            if (entity is null)
+            {
+                var apiEntityResult = await FetchEntityByCodeFromApi(entityCode);
+
+                if (apiEntityResult is null)
+                    return null!;
+
+                entity = new Entity(
+                    new LegalEntity(
+                        Document.FromString(apiEntityResult.Person?.TaxId),
+                        apiEntityResult.Person?.Naming?.LegalName,
+                        apiEntityResult.Person?.Naming?.TradeName
+                    ),
+                    apiEntityResult.Code
+                );
+
+                await _entityCommandStore.Register(entity);
+            }
+
+            return entity;
+        }
+
+        private async Task<ApiEntityModel?> FetchEntityByCodeFromApi(long entityCode)
+        {
+            try
+            {
+                var apiEntity = await _externalApi.GetEntityDataByCodeAsync(entityCode);
+
+                if (apiEntity is null || apiEntity.Result?.Any() == false)
+                    throw new BusinessException("Entity does not exist.");
+
+                return apiEntity.Result?[0];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while accessing the external API");
+                throw;
+            }
+        }
+    }
+
+    ```
+
+
+    ```
+    namespace GenericNamespace.Facade;s
+
+    public interface IEntityDataFacade
+    {
+        Task<Entity> GetEntityByCode(int entityCode);
+    }
+    ```
+    
+
+
+
+### Vantagens do Facade Pattern
+Simplicidade: Reduz a complexidade do cliente ao fornecer uma interface única.
+Desacoplamento: O cliente não precisa conhecer detalhes dos subsistemas.
+Manutenção facilitada: Alterações nos subsistemas podem ser feitas sem impactar o cliente, desde que a interface da fachada permaneça consistente.
+
+### Resumo
+O Facade Pattern ajuda a organizar e simplificar sistemas complexos, centralizando a interação com os subsistemas em uma única classe. É ideal para reduzir a complexidade e facilitar o uso de APIs ou sistemas internos. 🚀
+
+
 
