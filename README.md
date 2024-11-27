@@ -1167,4 +1167,291 @@ Testes Unitários: A interface IProductRepository pode ser mockada para testes.
 
 
 
+---
+
+
+### Value Object - Objeto de Valor
+Definição:
+Um Value Object é um padrão do DDD (Domain-Driven Design) que representa um conceito do domínio. Diferentemente de entidades, Value Objects não possuem identidade própria e são imutáveis. Dois objetos são iguais se seus valores forem iguais.
+
+### Características de um Value Object
+Imutabilidade: Um objeto de valor nunca muda após ser criado.
+Sem Identidade: Não é identificado por um Id, mas pelos valores que contém.
+Comparação por Valor: Dois Value Objects são iguais se seus valores forem iguais.
+
+
+### Exemplo Prático
+Cenário
+Vamos modelar um endereço em um sistema de pedidos. O endereço (rua, número, cidade) é um Value Object, porque:
+
+### Não tem identidade única.
+A troca de um endereço por outro com os mesmos valores não muda o sistema.
+
+
+
+### Implementação do Value Object
+
+
+
+
+    ```
+    public class Address
+    {
+        public string Street { get; }
+        public string City { get; }
+        public string ZipCode { get; }
+
+        public Address(string street, string city, string zipCode)
+        {
+            if (string.IsNullOrWhiteSpace(street) || string.IsNullOrWhiteSpace(city) || string.IsNullOrWhiteSpace(zipCode))
+            {
+                throw new ArgumentException("All address fields must be provided.");
+            }
+
+            Street = street;
+            City = city;
+            ZipCode = zipCode;
+        }
+
+        // Comparação por valor
+        public override bool Equals(object obj)
+        {
+            if (obj is not Address other)
+            {
+                return false;
+            }
+
+            return Street == other.Street &&
+                   City == other.City &&
+                   ZipCode == other.ZipCode;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Street, City, ZipCode);
+        }
+    }
+
+    ```
+
+
+### Uso do Value Object
+
+    ```
+    public class Order
+    {
+        public int Id { get; set; }
+        public Address ShippingAddress { get; private set; }
+
+        public Order(int id, Address shippingAddress)
+        {
+            Id = id;
+            ShippingAddress = shippingAddress ?? throw new ArgumentNullException(nameof(shippingAddress));
+        }
+
+        public void ChangeShippingAddress(Address newAddress)
+        {
+            if (newAddress == null)
+            {
+                throw new ArgumentNullException(nameof(newAddress));
+            }
+
+            ShippingAddress = newAddress;
+        }
+    }
+        
+    ```
+
+### Exemplo de Código Cliente
+
+    ```
+    var address1 = new Address("123 Main St", "Springfield", "12345");
+    var address2 = new Address("123 Main St", "Springfield", "12345");
+    var address3 = new Address("456 Elm St", "Shelbyville", "67890");
+
+    Console.WriteLine(address1.Equals(address2)); // True (mesmos valores)
+    Console.WriteLine(address1.Equals(address3)); // False (valores diferentes)
+
+    // Usando no pedido
+    var order = new Order(1, address1);
+    Console.WriteLine($"Order Address: {order.ShippingAddress.Street}");
+
+    // Alterando o endereço
+    order.ChangeShippingAddress(address3);
+    Console.WriteLine($"Updated Order Address: {order.ShippingAddress.Street}");
+
+    ```
+
+
+
+### Vantagens do Value Object
+Imutabilidade: Garante que os dados não sejam alterados acidentalmente.
+Consistência: Comparações baseadas em valor reduzem erros.
+Modelagem rica: Representa conceitos do domínio com mais precisão.
+
+
+### Quando usar Value Objects?
+Para representar pequenos conceitos do domínio como:
+Endereço, CPF, Nome completo, etc.
+Quando a identidade única não é necessária.
+
+
+
+
+
+----
+
+### Entity - Entidade
+
+
+
+Definição:
+No contexto de DDD (Domain-Driven Design), uma Entity (Entidade) é um objeto que possui uma identidade única e persistente ao longo do tempo, independentemente de seus atributos. Isso significa que a entidade é identificada por algo (como um Id), e não pelos valores de seus atributos.
+
+### Características de uma Entidade
+Identidade: É identificada de forma única, geralmente por um Id.
+Mutabilidade: Seus atributos podem ser alterados, mas sua identidade permanece a mesma.
+Persistência: Geralmente representa algo que precisa ser armazenado em um banco de dados.
+
+### Exemplo Prático
+Cenário
+Vamos modelar um sistema de pedidos. O Pedido (Order) é uma entidade porque:
+
+Ele tem um Id único.
+É um conceito do domínio que pode mudar ao longo do tempo (adicionar itens, alterar status).
+
+
+### Implementação da Entidade
+
+
+
+
+    ```
+    public class Order
+    {
+        public int Id { get; private set; }
+        public string CustomerName { get; private set; }
+        public List<OrderItem> Items { get; private set; } = new List<OrderItem>();
+        public DateTime CreatedAt { get; private set; }
+
+        public Order(int id, string customerName)
+        {
+            if (string.IsNullOrWhiteSpace(customerName))
+            {
+                throw new ArgumentException("Customer name cannot be null or empty.");
+            }
+
+            Id = id;
+            CustomerName = customerName;
+            CreatedAt = DateTime.UtcNow;
+        }
+
+        public void AddItem(OrderItem item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            Items.Add(item);
+        }
+
+        public void RemoveItem(OrderItem item)
+        {
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            Items.Remove(item);
+        }
+    }
+
+    ```
+
+### Exemplo de Item do Pedido (Entidade Relacionada)
+
+    ```
+    public class OrderItem
+    {
+        public int Id { get; private set; }
+        public string ProductName { get; private set; }
+        public int Quantity { get; private set; }
+        public decimal Price { get; private set; }
+
+        public OrderItem(int id, string productName, int quantity, decimal price)
+        {
+            if (string.IsNullOrWhiteSpace(productName))
+            {
+                throw new ArgumentException("Product name cannot be null or empty.");
+            }
+
+            if (quantity <= 0)
+            {
+                throw new ArgumentException("Quantity must be greater than zero.");
+            }
+
+            if (price <= 0)
+            {
+                throw new ArgumentException("Price must be greater than zero.");
+            }
+
+            Id = id;
+            ProductName = productName;
+            Quantity = quantity;
+            Price = price;
+        }
+    }
+    ```
+
+
+### Exemplo de Uso
+
+    ```
+    // Criando o pedido
+    var order = new Order(1, "John Doe");
+
+    // Adicionando itens ao pedido
+    var item1 = new OrderItem(1, "Laptop", 1, 1500.00m);
+    var item2 = new OrderItem(2, "Mouse", 2, 50.00m);
+
+    order.AddItem(item1);
+    order.AddItem(item2);
+
+    // Exibindo detalhes do pedido
+    Console.WriteLine($"Order ID: {order.Id}");
+    Console.WriteLine($"Customer: {order.CustomerName}");
+    Console.WriteLine("Items:");
+    foreach (var item in order.Items)
+    {
+        Console.WriteLine($" - {item.ProductName}, Quantity: {item.Quantity}, Price: {item.Price:C}");
+    }
+
+    // Removendo um item
+    order.RemoveItem(item2);
+
+    Console.WriteLine("Updated Items:");
+    foreach (var item in order.Items)
+    {
+        Console.WriteLine($" - {item.ProductName}, Quantity: {item.Quantity}, Price: {item.Price:C}");
+    }
+    ```
+
+
+
+### Diferença entre Entidades e Value Objects
+| Aspecto	       | Entity	                               | Value Object
+| Identidade	   | Identidade única (Id).	               | Não possui identidade única.
+| Comparação	   | Comparada por referência ou Id.	   | Comparada por valores.
+| Persistência     | Geralmente armazenada no banco.	   | Geralmente parte de uma entidade.
+| Mutabilidade     | Pode ser mutável.	                   | É imutável.
+
+
+
+### Quando usar Entidades?
+Para representar objetos do domínio que precisam de uma identidade única e persistente (ex.: Pedido, Cliente, Produto).
+Quando o conceito modelado pode mudar ao longo do tempo.
+
+---
+
 
